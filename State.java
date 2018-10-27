@@ -8,18 +8,6 @@ class State {
 	public static final int MAX_PIECE_MOVES = 27, PieceMask = 7, WhiteMask = 8, AllMask = 15;
 	public static final int None = 0, Pawn = 1, Rook = 2, Knight = 3, Bishop = 4, Queen = 5, King = 6;
 	int[] m_rows;
-	boolean game_over = false;
-
-	State() {
-		m_rows = new int[8];
-		resetBoard();
-	}
-
-	State(State that) {
-		m_rows = new int[8];
-		for(int i = 0; i < 8; i++)
-			this.m_rows[i] = that.m_rows[i];
-	}
 
 	//RETURNS -1 for bl win, 1 for wh win, 0 for game still in progress
 	boolean isGameOver() {
@@ -155,6 +143,29 @@ class State {
 		}
 	}
 
+	/// Positive means white is favored. Negative means black is favored.
+	int heuristic(Random rand) {
+		int score = 0;
+		for(int y = 0; y < 8; y++) {
+			for(int x = 0; x < 8; x++) {
+				int p = getPiece(x, y);
+				int value;
+				switch(p) {
+					case None: value = 0; break;
+					case Pawn: value = 10; break;
+					case Rook: value = 63; break;
+					case Knight: value = 31; break;
+					case Bishop: value = 36; break;
+					case Queen: value = 88; break;
+					case King: value = 500; break;
+					default: throw new RuntimeException("what?");
+				}
+				score += (isWhite(x, y)) ? value : -value;
+			}
+		}
+		return score + rand.nextInt(3) - 1;
+	}
+
 	//Returns poss moves for occupied space
 	ArrayList<Integer> moves(int col, int row) {
 		ArrayList<Integer> pOutMoves = new ArrayList<Integer>();
@@ -257,29 +268,6 @@ class State {
 		return pOutMoves;
 	}
 
-	/// Positive means white is favored. Negative means black is favored.
-	int heuristic(Random rand) {
-		int score = 0;
-		for(int y = 0; y < 8; y++) {
-			for(int x = 0; x < 8; x++) {
-				int p = getPiece(x, y);
-				int value;
-				switch(p) {
-					case None: value = 0; break;
-					case Pawn: value = 10; break;
-					case Rook: value = 63; break;
-					case Knight: value = 31; break;
-					case Bishop: value = 36; break;
-					case Queen: value = 88; break;
-					case King: value = 500; break;
-					default: throw new RuntimeException("what?");
-				}
-				score += (isWhite(x, y)) ? value : -value;
-			}
-		}
-		return score + rand.nextInt(3) - 1;
-	}
-
 	//used for finding all possible moves for a piece at a given square
 	boolean checkMove(ArrayList<Integer> pOutMoves, int col, int row, boolean bWhite) {
 		if(col < 0 || row < 0)
@@ -309,6 +297,7 @@ class State {
 	}
 	static int inc(int pos) { return (pos < 0 || pos >= 7) ? -1 : pos +1; }
 	static int dec(int pos) { return (pos < 1) ? -1 : pos-1; }
+
 	void printBoard(PrintStream stream) {
 		stream.println("  0  1  2  3  4  5  6  7");
 		stream.print(" +");
@@ -342,7 +331,7 @@ class State {
 		}
 		stream.println("  0  1  2  3  4  5  6  7");
 	}
-	void resetBoard() {
+	void resetBoard2() {
 		setPiece(0, 0, Rook, true);
 		setPiece(1, 0, Knight, true);
 		setPiece(2, 0, Bishop, true);
@@ -366,5 +355,52 @@ class State {
 		setPiece(5, 7, Bishop, false);
 		setPiece(6, 7, Knight, false);
 		setPiece(7, 7, Rook, false);
+	}
+
+	void resetBoard() {
+		for(int j = 0; j < 0; j++)
+			for(int i = 0; i < 8; i++)
+				setPiece(i, j, None, false);
+//		setPiece(0, 0, Rook, true);
+//		setPiece(1, 0, Knight, true);
+//		setPiece(2, 0, Bishop, true);
+//		setPiece(3, 0, Queen, true);
+		setPiece(4, 1, King, true);
+		setPiece(3, 1, Pawn, true);
+		setPiece(3, 2, Pawn, true);
+		setPiece(4, 2, Pawn, true);
+		setPiece(5, 2, Pawn, true);
+		setPiece(5, 1, Pawn, true);
+//		setPiece(5, 0, Bishop, true);
+//		setPiece(6, 0, Knight, true);
+//		setPiece(7, 0, Rook, true);
+//		for(int i = 0; i < 8; i++)
+//			setPiece(i, 1, Pawn, true);
+
+//		for(int i = 0; i < 8; i++)
+//			setPiece(i, 6, Pawn, false);
+//		setPiece(0, 7, Rook, false);
+//		setPiece(1, 7, Knight, false);
+//		setPiece(2, 7, Bishop, false);
+//		setPiece(3, 7, Queen, false);
+		setPiece(4, 7, King, false);
+		setPiece(3, 7, Pawn, false);
+		setPiece(3, 6, Pawn, false);
+		setPiece(4, 6, Pawn, false);
+		setPiece(5, 6, Pawn, false);
+		setPiece(5, 7, Pawn, false);
+//		setPiece(5, 7, Bishop, false);
+//		setPiece(6, 7, Knight, false);
+//		setPiece(7, 7, Rook, false);
+	}
+
+	State() {
+		m_rows = new int[8];
+		resetBoard();
+	}
+	State(State that) {
+		m_rows = new int[8];
+		for(int i = 0; i < 8; i++)
+			this.m_rows[i] = that.m_rows[i];
 	}
 }

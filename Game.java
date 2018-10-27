@@ -14,10 +14,13 @@ public class Game {
 		s.printBoard(System.out);
 		System.out.println();
 
-//		s.move(1, 1, 4, 7);
-		System.out.println(s.getPiece(4, 7));
+		State.Move mv = wh.findBestMove();
+		s.move(mv.x1, mv.y1, mv.x2, mv.y2);
 
-		s.move(1, 0, 2, 2);
+//		s.move(1, 1, 4, 7);
+//		System.out.println(s.getPiece(4, 7));
+
+//		s.move(1, 0, 2, 2);
 		s.printBoard(System.out);
 		System.out.println(s.heuristic(r));
 	}
@@ -25,8 +28,6 @@ public class Game {
 	void play() {
 
 	}
-
-
 
 	public static void main(String[] args) {
 		System.out.println(args[0] + " " + args[1]);
@@ -36,11 +37,9 @@ public class Game {
 
 	class Agent {
 		int lookahead;
-		Game game;
 		boolean is_white;
 		Agent(boolean is_wh, int la_depth, Game g) {
 			is_white = is_wh;
-			game = g;
 			lookahead = la_depth;
 		}
 
@@ -59,6 +58,8 @@ public class Game {
 
 			//get all the possible moves
 			ArrayList<State.Move> poss_moves = node.getPossMovesList(isMax);
+			for(State.Move st: poss_moves)
+				System.out.println(st.x1 + " " + st.y1 + " " + st.x2 + " " + st.y2);
 			int best_index = 0;
 			//MAX turn
 			if(isMax) {
@@ -76,7 +77,7 @@ public class Game {
 					if(alpha >= beta)
 						break;
 				}
-				return (top) ? value : best_index;
+				return (top) ? best_index :value;
 			}
 			//MIN turn
 			else {
@@ -94,7 +95,7 @@ public class Game {
 					if(alpha >= beta)
 						break;
 				}
-				return (top) ? value : best_index;
+				return (top) ? best_index :value;
 			}
 		}
 	}

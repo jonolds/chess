@@ -36,8 +36,10 @@ class State {
 		int p = getPiece(xSrc, ySrc);
 		if(p == None)
 			throw new RuntimeException("There is no piece in the source location");
-		if(target != None && isWhite(xSrc, ySrc) == isWhite(xDest, yDest))
+		if(target != None && isWhite(xSrc, ySrc) == isWhite(xDest, yDest)) {
 			throw new RuntimeException("It is illegal to take your own piece");
+		}
+
 		if(p == Pawn && (yDest == 0 || yDest == 7))
 			p = Quen; // a pawn that crosses the board becomes a queen
 		boolean white = isWhite(xSrc, ySrc);
@@ -65,7 +67,8 @@ class State {
 				if(getPiece(c, r) != None && isWhite(c, r) == white) {
 					ArrayList<Integer> movesIntAL = movesBySquare(c, r);
 					for(int i = 0; i < movesIntAL.size(); i+=2)
-						moves.add(new Move(c, r, movesIntAL.get(i), movesIntAL.get(i+1)));
+						if(isWhite(c, r) != isWhite(movesIntAL.get(i), movesIntAL.get(i+1)))
+							moves.add(new Move(c, r, movesIntAL.get(i), movesIntAL.get(i+1)));
 				}
 		return moves.toArray(new Move[moves.size()]);
 	}
@@ -339,6 +342,8 @@ class State {
 		} catch(Exception e) {
 			this.printBoard();
 			System.out.println("Move: (" + mv.x1 + "," + mv.y1 + ") to (" + mv.x2 + "," + mv.y2 + ")");
+			System.out.println();
+			printMoves(getPossMoves(isWhite(mv.x1, mv.y1)));
 			System.exit(0);
 		}
 

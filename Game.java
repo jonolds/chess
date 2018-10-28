@@ -10,7 +10,7 @@ public class Game {
 	State st;
 
 	public static void main(String[] args) {
-		Game g = new Game(3, 5);
+		Game g = new Game(7, 5);
 		g.play();
 	}
 
@@ -22,7 +22,7 @@ public class Game {
 
 	void play() {
 		wh.makeBestMove();
-//		bl.makeBestMove();
+		bl.makeBestMove();
 	}
 
 	class Agent {
@@ -34,7 +34,7 @@ public class Game {
 			Move[] moves = st.getPossMoves(is_white);
 			for(int i = 0; i < moves.length; i++) {
 				State copy = new State(st, moves[i]);
-				int score = alphaBeta(copy, lookahead, is_white, (is_white ? MIN:MAX), (is_white?MAX:MIN));
+				int score = alphaBeta(copy, lookahead, is_white, MIN, MAX);
 				score = score * ((is_white) ? 1 : -1);
 				if(score > best_score) {
 					best_score = score;
@@ -52,12 +52,17 @@ public class Game {
 
 			//get all the possible moves
 			Move[] possible = node.getPossMoves(isMax);
+//			node.printBoard();
 //			printMoves(possible);
 
 			//MAX turn
 			if(isMax) {
 				int value = Integer.MIN_VALUE;
 				for(int i = 0; i < possible.length; i++) {
+//					State copy = new State(node);
+//					Move m = possible[i];
+//					copy.move(m);
+//					System.out.println("(" + m.x1 + " " + m.y1 + ")" + " " + "(" + m.x2 + " " + m.y2 + ")     Heur: " + copy.heuristic(r));
 					State copy = new State(node, possible[i]);
 					value = Math.max(value, alphaBeta(copy, depth-1, !isMax, alpha, beta));
 					alpha = Math.max(alpha, value);
@@ -70,6 +75,10 @@ public class Game {
 			else {
 				int value = Integer.MAX_VALUE;
 				for(int i = 0; i < possible.length; i++) {
+//					State copy = new State(node);
+//					Move m = possible[i];
+//					copy.move(m);
+//					System.out.println("(" + m.x1 + " " + m.y1 + ")" + " " + "(" + m.x2 + " " + m.y2 + ")     Heur: " + copy.heuristic(r));
 					State copy = new State(node, possible[i]);
 					value = Math.min(value, alphaBeta(copy, depth-1, !isMax, alpha, beta));
 					beta = Math.min(beta, value);

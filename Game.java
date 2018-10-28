@@ -21,10 +21,7 @@ public class Game {
 	}
 
 	void play() {
-		st.printBoard();
-		System.out.println("\n");
-
-//		wh.makeBestMove();
+		wh.makeBestMove();
 //		bl.makeBestMove();
 	}
 
@@ -34,7 +31,7 @@ public class Game {
 
 		boolean makeBestMove() {
 			int best_score = -1, index = -1;
-			Move[] moves = st.getColorMovesArr(is_white);
+			Move[] moves = st.getPossMoves(is_white);
 			for(int i = 0; i < moves.length; i++) {
 				State copy = new State(st, moves[i]);
 				int score = alphaBeta(copy, lookahead, is_white, (is_white ? MIN:MAX), (is_white?MAX:MIN));
@@ -54,8 +51,8 @@ public class Game {
 				return node.heuristic(r);
 
 			//get all the possible moves
-			Move[] possible = node.getColorMovesArr(isMax);
-			printMoves(possible);
+			Move[] possible = node.getPossMoves(isMax);
+//			printMoves(possible);
 
 			//MAX turn
 			if(isMax) {
@@ -92,11 +89,6 @@ public class Game {
 			this.lookahead = lookahead_depth;
 		}
 	}
-
-//	void printMoves(ArrayList<Move> moves) {
-//		for(Move mv: moves)
-//			System.out.println(mv.x1 + " " + mv.y1 + " " + mv.x2 + " " + mv.y2);
-//	}
 
 	void printMoves(Move... moves ) {
 		System.out.println("PRINTING MOVES: ");

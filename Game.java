@@ -1,102 +1,106 @@
-import java.util.ArrayList;
 import java.util.Random;
+import java.util.Scanner;
 
 public class Game {
-	Agent wh, bl;
-	State s;
+	Scanner sc = new Scanner(System.in);
 	Random r = new Random();
+	public static final int MAX = Integer.MAX_VALUE, MIN = Integer.MIN_VALUE;
 
-	Game(int wh_lookahead, int bl_lookahead) {
-		this.wh = new Agent(true, wh_lookahead, this);
-		this.bl = new Agent(false, bl_lookahead, this);
-		s = new State();
-		s.resetBoard();
-		s.printBoard(System.out);
-		System.out.println();
+	Agent wh, bl;
+	State st;
 
-		State.Move mv = wh.findBestMove();
-		s.move(mv.x1, mv.y1, mv.x2, mv.y2);
+	public static void main(String[] args) {
+		Game g = new Game(3, 5);
+		g.play();
+	}
 
-//		s.move(1, 1, 4, 7);
-//		System.out.println(s.getPiece(4, 7));
-
-//		s.move(1, 0, 2, 2);
-		s.printBoard(System.out);
-		System.out.println(s.heuristic(r));
+	Game(int wh_la, int bl_la) {
+		this.wh = new Agent(true, wh_la);
+		this.bl = new Agent(false, bl_la);
+		st = new State();
 	}
 
 	void play() {
+		st.printBoard();
+		System.out.println("\n");
 
-	}
-
-	public static void main(String[] args) {
-		System.out.println(args[0] + " " + args[1]);
-		Game g = new Game(1, 5);
-		g.play();
+//		wh.makeBestMove();
+//		bl.makeBestMove();
 	}
 
 	class Agent {
 		int lookahead;
 		boolean is_white;
-		Agent(boolean is_wh, int la_depth, Game g) {
-			is_white = is_wh;
-			lookahead = la_depth;
+
+		boolean makeBestMove() {
+			int best_score = -1, index = -1;
+			Move[] moves = st.getColorMovesArr(is_white);
+			for(int i = 0; i < moves.length; i++) {
+				State copy = new State(st, moves[i]);
+				int score = alphaBeta(copy, lookahead, is_white, (is_white ? MIN:MAX), (is_white?MAX:MIN));
+				score = score * ((is_white) ? 1 : -1);
+				if(score > best_score) {
+					best_score = score;
+					index = i;
+				}
+			}
+			st.move(moves[index]);
+			st.printBoard();
+			return st.isGameOver();
 		}
 
-		State.Move findBestMove() {
-			//Get best move as index related to State.getPossMovesList(is_white)
-			int best_move = alphaBeta(s, lookahead, true, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
-
-			ArrayList<State.Move> poss_moves = s.getPossMovesList(is_white);
-			return poss_moves.get(best_move);
-		}
-
-		int alphaBeta(State node, int depth, boolean isMax, int alpha, int beta, boolean top) {
-			//RETURN if at terminal node or winning move has been found
+		int alphaBeta(State node, int depth, boolean isMax, int alpha, int beta) {
 			if(depth == 0 || node.isGameOver())
 				return node.heuristic(r);
 
 			//get all the possible moves
-			ArrayList<State.Move> poss_moves = node.getPossMovesList(isMax);
-			for(State.Move st: poss_moves)
-				System.out.println(st.x1 + " " + st.y1 + " " + st.x2 + " " + st.y2);
-			int best_index = 0;
+			Move[] possible = node.getColorMovesArr(isMax);
+			printMoves(possible);
+
 			//MAX turn
 			if(isMax) {
 				int value = Integer.MIN_VALUE;
-				for(int i = 0; i < poss_moves.size(); i++) {
-					State copy = new State(node);
-					State.Move mv = poss_moves.get(i);
-					copy.move(mv.x1, mv.y1, mv.x2, mv.y2);
-					int tmp = alphaBeta(copy, depth-1, false, alpha, beta, false);
-					if(tmp > value) {
-						value = tmp;
-						best_index = i;
-					}
+				for(int i = 0; i < possible.length; i++) {
+					State copy = new State(node, possible[i]);
+					value = Math.max(value, alphaBeta(copy, depth-1, !isMax, alpha, beta));
 					alpha = Math.max(alpha, value);
 					if(alpha >= beta)
 						break;
 				}
-				return (top) ? best_index :value;
+				return value;
 			}
 			//MIN turn
 			else {
 				int value = Integer.MAX_VALUE;
-				for(int i = 0; i < poss_moves.size(); i++) {
-					State copy = new State(node);
-					State.Move mv = poss_moves.get(i);
-					copy.move(mv.x1, mv.y1, mv.x2, mv.y2);
-					int tmp = alphaBeta(copy, depth-1, true, alpha, beta, false);
-					if(tmp < value) {
-						value = tmp;
-						best_index = i;
-					}
+				for(int i = 0; i < possible.length; i++) {
+					State copy = new State(node, possible[i]);
+					value = Math.min(value, alphaBeta(copy, depth-1, !isMax, alpha, beta));
 					beta = Math.min(beta, value);
 					if(alpha >= beta)
 						break;
 				}
-				return (top) ? best_index :value;
+				return value;
 			}
 		}
+
+		String actualStr() {
+			return (is_white) ? "white" : "black";
+		}
+
+		Agent(boolean is_wh, int lookahead_depth) {
+			this.is_white = is_wh;
+			this.lookahead = lookahead_depth;
+		}
+	}
+
+//	void printMoves(ArrayList<Move> moves) {
+//		for(Move mv: moves)
+//			System.out.println(mv.x1 + " " + mv.y1 + " " + mv.x2 + " " + mv.y2);
+//	}
+
+	void printMoves(Move... moves ) {
+		System.out.println("PRINTING MOVES: ");
+		for(Move mv: moves)
+			System.out.println(mv.x1 + " " + mv.y1 + " " + mv.x2 + " " + mv.y2);
 	}
 }

@@ -1,12 +1,11 @@
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
-import java.util.Scanner;
 
 class State {
-	Scanner sc = new Scanner(System.in);
 	public static final int MAX_PIECE_MOVES = 27, PieceMask = 7, WhiteMask = 8, AllMask = 15;
-	public static final int None = 0, Pawn = 1, Rook = 2, Knight = 3, Bishop = 4, Queen = 5, King = 6;
+	public static final int None = 0, Pawn = 1, Rook = 2, Knig = 3, Bish = 4, Quen = 5, King = 6;
 	int[] m_rows;
 
 	//RETURNS -1 for bl win, 1 for wh win, 0 for game still in progress
@@ -34,7 +33,7 @@ class State {
 
 	/// Returns true iff the parameters represent a valid move
 	boolean isValid(int xSrc, int ySrc, int xDest, int yDest) {
-		ArrayList<Integer> possible_moves = moves(xSrc, ySrc);
+		ArrayList<Integer> possible_moves = movesBySquare(xSrc, ySrc);
 		for(int i = 0; i < possible_moves.size(); i += 2) {
 			if(possible_moves.get(i).intValue() == xDest && possible_moves.get(i + 1).intValue() == yDest)
 				return true;
@@ -56,7 +55,7 @@ class State {
 		if(target != None && isWhite(xSrc, ySrc) == isWhite(xDest, yDest))
 			throw new RuntimeException("It is illegal to take your own piece");
 		if(p == Pawn && (yDest == 0 || yDest == 7))
-			p = Queen; // a pawn that crosses the board becomes a queen
+			p = Quen; // a pawn that crosses the board becomes a queen
 		boolean white = isWhite(xSrc, ySrc);
 		setPiece(xDest, yDest, p, white);
 		setPiece(xSrc, ySrc, None, true);
@@ -72,102 +71,45 @@ class State {
 		}
 		return false;
 	}
+	//Move piece (same thing, different parameter)
+	boolean move(Move m) { return move(m.x1, m.y1, m.x2, m.y2); }
 
 
 
-	ArrayList<Move> getPossMovesList(boolean white) {
-		ArrayList<Move> move_list = new ArrayList<>();
-		MoveIter it = iterator(white);
-		while(it.hasNext())
-			move_list.add(it.next());
-		return move_list;
+	void printMoves(ArrayList<Move> moves) {
+		for(Move st: moves)
+			System.out.println(st.x1 + " " + st.y1 + " " + st.x2 + " " + st.y2);
 	}
 
-	/// Returns an iterator that iterates over all possible moves for the specified color
-	MoveIter iterator(boolean white) { return new MoveIter(this, white); }
+//	List<Move> getColorMovesList(boolean white) {
+//		List<Move> moves = new ArrayList<>();
+//		for(int c = 0; c < 8; c++)
+//			for(int r = 0; r < 8; r++)
+//				if(getPiece(c, r) != None && isWhite(c, r) == white)
+//					moves.addAll(moveObjsBySquare(c, r));
+//		return moves;
+//	}
 
-/* CLASS CHESSMOVE - Represents a possible  move */
-	static class Move {
-		int x1, y1, x2, y2;
-		Move() {}
-		Move(int x1, int y1, int x2, int y2) {
-			this.x1 = x1; this.y1 = y1; this.x2 = x2; this.y2 = y2;
-		}
+	Move[] getColorMovesArr(boolean white) {
+		List<Move> moves = new ArrayList<>();
+		for(int c = 0; c < 8; c++)
+			for(int r = 0; r < 8; r++)
+				if(getPiece(c, r) != None && isWhite(c, r) == white)
+					moves.addAll(moveObjsBySquare(c, r));
+		return moves.toArray(new Move[moves.size()]);
 	}
 
-/* CLASS CHESSMOVEITERATOR - Iterates through all the possible moves for the specified color. */
-	static class MoveIter {
-		int x, y;
-		ArrayList<Integer> moves;
-		State state;
-		boolean white;
+	ArrayList<Move> moveObjsBySquare(int col, int row) {
+		ArrayList<Move> moves = new ArrayList<>();
+		ArrayList<Integer> movesIntAL = movesBySquare(col, row);
 
-		/// Constructs a move iterator
-		MoveIter(State curState, boolean isWhite) {
-			x = -1;
-			y = 0;
-			moves = null;
-			state = curState;
-			white = isWhite;
-			advance();
-		}
-
-		private void advance() {
-			if(moves != null && moves.size() >= 2) {
-				moves.remove(moves.size() - 1);
-				moves.remove(moves.size() - 1);
-			}
-			while(y < 8 && (moves == null || moves.size() < 2)) {
-				if(++x >= 8) {
-					x = 0;
-					y++;
-				}
-				if(y < 8)
-					moves = (state.getPiece(x, y) != State.None && state.isWhite(x, y) == white)
-							? state.moves(x, y) : null;
-			}
-		}
-
-		/// Returns true iff there is another move to visit
-		boolean hasNext() { return (moves != null && moves.size() >= 2); }
-
-		/// Returns the next move
-		State.Move next() {
-			State.Move m = new State.Move();
-			m.x1 = x;
-			m.y1 = y;
-			m.x2 = moves.get(moves.size() - 2);
-			m.y2 = moves.get(moves.size() - 1);
-			advance();
-			return m;
-		}
-	}
-
-	/// Positive means white is favored. Negative means black is favored.
-	int heuristic(Random rand) {
-		int score = 0;
-		for(int y = 0; y < 8; y++) {
-			for(int x = 0; x < 8; x++) {
-				int p = getPiece(x, y);
-				int value;
-				switch(p) {
-					case None: value = 0; break;
-					case Pawn: value = 10; break;
-					case Rook: value = 63; break;
-					case Knight: value = 31; break;
-					case Bishop: value = 36; break;
-					case Queen: value = 88; break;
-					case King: value = 500; break;
-					default: throw new RuntimeException("what?");
-				}
-				score += (isWhite(x, y)) ? value : -value;
-			}
-		}
-		return score + rand.nextInt(3) - 1;
+		for(int i = 0; i < movesIntAL.size(); i+=2)
+			moves.add(new Move(col, row, movesIntAL.get(i), movesIntAL.get(i+1)));
+		return moves;
 	}
 
 	//Returns poss moves for occupied space
-	ArrayList<Integer> moves(int col, int row) {
+	ArrayList<Integer> movesBySquare(int col, int row) {
 		ArrayList<Integer> pOutMoves = new ArrayList<Integer>();
 		int p = getPiece(col, row);
 		boolean bWhite = isWhite(col, row);
@@ -188,7 +130,7 @@ class State {
 					checkPawnMove(pOutMoves, dec(col), dec(row), true, bWhite);
 				}
 				break;
-			case Bishop:
+			case Bish:
 				for(i = inc(col), j=inc(row); true; i = inc(i), j = inc(j))
 					if(checkMove(pOutMoves, i, j, bWhite))
 						break;
@@ -202,7 +144,7 @@ class State {
 					if(checkMove(pOutMoves, i, j, bWhite))
 						break;
 				break;
-			case Knight:
+			case Knig:
 				checkMove(pOutMoves, inc(inc(col)), inc(row), bWhite);
 				checkMove(pOutMoves, inc(col), inc(inc(row)), bWhite);
 				checkMove(pOutMoves, dec(col), inc(inc(row)), bWhite);
@@ -226,7 +168,7 @@ class State {
 					if(checkMove(pOutMoves, col, j, bWhite))
 						break;
 				break;
-			case Queen:
+			case Quen:
 				for(i = inc(col); true; i = inc(i))
 					if(checkMove(pOutMoves, i, row, bWhite))
 						break;
@@ -268,6 +210,66 @@ class State {
 		return pOutMoves;
 	}
 
+///*MOVES LIST USING ITERATOR*/
+//	ArrayList<Move> getPossMovesList(boolean white) {
+//		ArrayList<Move> move_list = new ArrayList<>();
+//		MoveIter it = iterator(white);
+//		while(it.hasNext())
+//			move_list.add(it.next());
+//		return move_list;
+//	}
+//
+//	/// Returns an iterator that iterates over all possible moves for the specified color
+//	MoveIter iterator(boolean white) { return new MoveIter(this, white); }
+//
+//	/* CLASS CHESSMOVEITERATOR - Iterates through all the possible moves for the specified color. */
+//	static class MoveIter {
+//		int x, y;
+//		ArrayList<Integer> moves;
+//		State state;
+//		boolean white;
+//
+//		/// Constructs a move iterator
+//		MoveIter(State curState, boolean isWhite) {
+//			x = -1;
+//			y = 0;
+//			moves = null;
+//			state = curState;
+//			white = isWhite;
+//			advance();
+//		}
+//
+//		private void advance() {
+//			if(moves != null && moves.size() >= 2) {
+//				moves.remove(moves.size() - 1);
+//				moves.remove(moves.size() - 1);
+//			}
+//			while(y < 8 && (moves == null || moves.size() < 2)) {
+//				if(++x >= 8) {
+//					x = 0;
+//					y++;
+//				}
+//				if(y < 8)
+//					moves = (state.getPiece(x, y) != State.None && state.isWhite(x, y) == white)
+//							? state.movesBySquare(x, y) : null;
+//			}
+//		}
+//
+//		/// Returns true iff there is another move to visit
+//		boolean hasNext() { return (moves != null && moves.size() >= 2); }
+//
+//		/// Returns the next move
+//		Move next() {
+//			Move m = new Move();
+//			m.x1 = x;
+//			m.y1 = y;
+//			m.x2 = moves.get(moves.size() - 2);
+//			m.y2 = moves.get(moves.size() - 1);
+//			advance();
+//			return m;
+//		}
+//	}
+
 	//used for finding all possible moves for a piece at a given square
 	boolean checkMove(ArrayList<Integer> pOutMoves, int col, int row, boolean bWhite) {
 		if(col < 0 || row < 0)
@@ -278,6 +280,29 @@ class State {
 		pOutMoves.add(col);
 		pOutMoves.add(row);
 		return (p > 0);
+	}
+
+	/// Positive means white is favored. Negative means black is favored.
+	int heuristic(Random rand) {
+		int score = 0;
+		for(int y = 0; y < 8; y++) {
+			for(int x = 0; x < 8; x++) {
+				int p = getPiece(x, y);
+				int value;
+				switch(p) {
+					case None: value = 0; break;
+					case Pawn: value = 10; break;
+					case Rook: value = 63; break;
+					case Knig: value = 31; break;
+					case Bish: value = 36; break;
+					case Quen: value = 88; break;
+					case King: value = 500; break;
+					default: throw new RuntimeException("what?");
+				}
+				score += (isWhite(x, y)) ? value : -value;
+			}
+		}
+		return score + rand.nextInt(3) - 1;
 	}
 
 	//Can (probably) ignore for algorythm
@@ -298,7 +323,8 @@ class State {
 	static int inc(int pos) { return (pos < 0 || pos >= 7) ? -1 : pos +1; }
 	static int dec(int pos) { return (pos < 1) ? -1 : pos-1; }
 
-	void printBoard(PrintStream stream) {
+	void printBoard() {
+		PrintStream stream = System.out;
 		stream.println("  0  1  2  3  4  5  6  7");
 		stream.print(" +");
 		for(int i = 0; i < 8; i++)
@@ -315,9 +341,9 @@ class State {
 					case None: stream.print("  "); break;
 					case Pawn: stream.print("p"); break;
 					case Rook: stream.print("r"); break;
-					case Knight: stream.print("n"); break;
-					case Bishop: stream.print("b"); break;
-					case Queen: stream.print("q"); break;
+					case Knig: stream.print("n"); break;
+					case Bish: stream.print("b"); break;
+					case Quen: stream.print("q"); break;
 					case King: stream.print("K"); break;
 					default: stream.print("?"); break;
 				}
@@ -330,68 +356,48 @@ class State {
 			stream.println();
 		}
 		stream.println("  0  1  2  3  4  5  6  7");
+		System.out.println();
 	}
-	void resetBoard2() {
-		setPiece(0, 0, Rook, true);
-		setPiece(1, 0, Knight, true);
-		setPiece(2, 0, Bishop, true);
-		setPiece(3, 0, Queen, true);
-		setPiece(4, 0, King, true);
-		setPiece(5, 0, Bishop, true);
-		setPiece(6, 0, Knight, true);
-		setPiece(7, 0, Rook, true);
-		for(int i = 0; i < 8; i++)
-			setPiece(i, 1, Pawn, true);
-		for(int j = 2; j < 6; j++)
-			for(int i = 0; i < 8; i++)
-				setPiece(i, j, None, false);
-		for(int i = 0; i < 8; i++)
-			setPiece(i, 6, Pawn, false);
-		setPiece(0, 7, Rook, false);
-		setPiece(1, 7, Knight, false);
-		setPiece(2, 7, Bishop, false);
-		setPiece(3, 7, Queen, false);
-		setPiece(4, 7, King, false);
-		setPiece(5, 7, Bishop, false);
-		setPiece(6, 7, Knight, false);
-		setPiece(7, 7, Rook, false);
-	}
+
 
 	void resetBoard() {
-		for(int j = 0; j < 0; j++)
-			for(int i = 0; i < 8; i++)
-				setPiece(i, j, None, false);
-//		setPiece(0, 0, Rook, true);
-//		setPiece(1, 0, Knight, true);
-//		setPiece(2, 0, Bishop, true);
-//		setPiece(3, 0, Queen, true);
-		setPiece(4, 1, King, true);
-		setPiece(3, 1, Pawn, true);
-		setPiece(3, 2, Pawn, true);
-		setPiece(4, 2, Pawn, true);
-		setPiece(5, 2, Pawn, true);
-		setPiece(5, 1, Pawn, true);
-//		setPiece(5, 0, Bishop, true);
-//		setPiece(6, 0, Knight, true);
-//		setPiece(7, 0, Rook, true);
-//		for(int i = 0; i < 8; i++)
-//			setPiece(i, 1, Pawn, true);
+		for(int j = 0, i = 0; j < 8; j++, i++)
+			setPiece(i, j, None, false);
+		setType(Rook, true, 0,0, 7,0);
+		setType(Knig, true, 1,0, 6,0);
+		setType(Bish, true, 2,0, 5,0);
+		setType(Quen, true, 3,0);
+		setType(King, true, 4,0);
+		setType(Pawn, true, 0,1, 1,1, 2,1, 3,1, 4,1, 5,1, 6,1, 7,1);
 
-//		for(int i = 0; i < 8; i++)
-//			setPiece(i, 6, Pawn, false);
-//		setPiece(0, 7, Rook, false);
-//		setPiece(1, 7, Knight, false);
-//		setPiece(2, 7, Bishop, false);
-//		setPiece(3, 7, Queen, false);
-		setPiece(4, 7, King, false);
-		setPiece(3, 7, Pawn, false);
-		setPiece(3, 6, Pawn, false);
-		setPiece(4, 6, Pawn, false);
-		setPiece(5, 6, Pawn, false);
-		setPiece(5, 7, Pawn, false);
-//		setPiece(5, 7, Bishop, false);
-//		setPiece(6, 7, Knight, false);
-//		setPiece(7, 7, Rook, false);
+		setType(Rook, false, 0,7, 7,7);
+		setType(Knig, false, 1,7, 6,7);
+		setType(Bish, false, 2,7, 5,7);
+		setType(Quen, false, 3,7);
+		setType(King, false, 4,7);
+		setType(Pawn, false, 0,6, 1,6, 2,6, 3,6, 4,6, 5,6, 6,6, 7,6);
+
+		printBoard();
+	}
+
+	void resetBoard2() {
+		for(int j = 0, i = 0; j < 8; j++, i++)
+			setPiece(i, j, None, false);
+		setType(Rook, true, 0,0, 7,0);
+		setType(Knig, true, 1,0, 6,0);
+		setType(Bish, true, 2,0, 5,0);
+		setType(Quen, true, 3,0);
+		setType(King, true, 4,0);
+		setType(Pawn, true, 0,1, 1,1, 2,1, 3,1, 4,1, 5,1, 6,1, 7,1);
+
+//		setType(Rook, false, 0,7, 7,7);
+//		setType(Knig, false, 1,7, 6,7);
+//		setType(Bish, false, 2,7, 5,7);
+//		setType(Quen, false, 3,7);
+		setType(King, false, 4,3);
+//		setType(Pawn, false, 0,6, 1,6, 2,6, 3,6, 4,6, 5,6, 6,6, 7,6);
+
+		printBoard();
 	}
 
 	State() {
@@ -399,8 +405,29 @@ class State {
 		resetBoard();
 	}
 	State(State that) {
-		m_rows = new int[8];
+		this.m_rows = new int[8];
 		for(int i = 0; i < 8; i++)
 			this.m_rows[i] = that.m_rows[i];
+	}
+
+	State(State that, Move mv) {
+		this.m_rows = new int[8];
+		for(int i = 0; i < 8; i++)
+			this.m_rows[i] = that.m_rows[i];
+		this.move(mv);
+	}
+
+	void setType(int type, boolean is_white, int...is) {
+		for(int i = 0; i < is.length; i+=2)
+			setPiece(is[i], is[i+1], type, is_white);
+	}
+}
+
+/* CLASS CHESSMOVE - Represents a possible  move */
+class Move {
+	int x1, y1, x2, y2;
+	Move() {}
+	Move(int x1, int y1, int x2, int y2) {
+		this.x1 = x1; this.y1 = y1; this.x2 = x2; this.y2 = y2;
 	}
 }
